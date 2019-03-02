@@ -19,5 +19,7 @@ export const ensureDetailedPublicMethodArg = (arg : PublicMethodArg) : PublicMet
 export type PublicMethodValueType = PublicMethodScalarType | PublicMethodCollectionType
 export type PublicMethodScalarType = PrimitiveFieldType
 export type PublicMethodCollectionType = { collection : string }
+export const isPublicMethodCollectionType = (valueType : PublicMethodValueType) : valueType is PublicMethodCollectionType =>
+    !!valueType['collection']
 
 export type AutoPkType = 'int' | 'string'
