@@ -1,7 +1,7 @@
 {
-  "name": "@worldbrain/storex-graphql-server",
+  "name": "@worldbrain/storex-graphql-schema",
   "version": "0.1.0",
-  "description": "Automatic GraphQL server for Storex modules",
+  "description": "Automatic GraphQL schema for Storex modules",
   "main": "lib/index.js",
   "typings": "lib/index",
   "scripts": {
