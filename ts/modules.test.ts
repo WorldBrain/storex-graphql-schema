@@ -5,6 +5,7 @@ import { StorageModule, StorageModuleConfig } from '@worldbrain/storex-pattern-m
 import { setupStorexTest } from '@worldbrain/storex-pattern-modules/lib/index.tests'
 import { createStorexGraphQLSchema } from './modules';
 import { PublicMethodDefinitions, StorageModuleConfigWithMethods } from './types';
+import { expectGraphQLSchemaToEqual } from './index.tests';
 
 describe('StorageModule translation', () => {
     // https://graphql.org/graphql-js/constructing-types/
@@ -47,7 +48,21 @@ describe('StorageModule translation', () => {
         await storageManager.collection('user').createObject({name: 'joe', age: 30})
 
         const schema = createStorexGraphQLSchema({storageManager, modules, autoPkType: 'int'})
-        console.log(graphql.printSchema(schema))
+        expectGraphQLSchemaToEqual(schema, `
+        type Query {
+          users: Users
+        }
+        
+        type User {
+          name: String!
+          age: Int!
+          id: Int!
+        }
+        
+        type Users {
+          byName(name: String!): User
+        }
+        `)
 
         const result = await graphql.graphql(schema, `
         query {

@@ -1,9 +1,8 @@
-import * as expect from 'expect'
-import * as graphql from "graphql";
 import StorageRegistry from '@worldbrain/storex/lib/registry'
 import { CollectionDefinitionMap, CollectionFields, CollectionField } from '@worldbrain/storex/lib/types';
 import { exportSchemaTypes } from './schema';
 import { FieldTypeRegistry } from '@worldbrain/storex/lib/fields';
+import { expectGraphQLSchemaToEqual } from './index.tests';
 
 describe('Schema generation', () => {
     describe('Type generation', () => {
@@ -11,12 +10,7 @@ describe('Schema generation', () => {
             const registry = new StorageRegistry({fieldTypes: new FieldTypeRegistry()})
             registry.registerCollections(options.collections)
             await registry.finishInitialization()
-
-            const expectLines = options.expect.split('\n')
-            const secondExpectLine = expectLines[1]
-            const leadingSpaces = /^\s+/.exec(secondExpectLine)[0]
-            const expectWithoutLeadingSpaces = expectLines.slice(1, -1).map(line => line.slice(leadingSpaces.length)).join('\n')
-            expect(graphql.printSchema(exportSchemaTypes(registry, {autoPkType: 'int'})).trim()).toEqual(expectWithoutLeadingSpaces)
+            expectGraphQLSchemaToEqual(exportSchemaTypes(registry, {autoPkType: 'int'}), options.expect)
         }
 
         async function runSimpleTest(options : {collectionName : string, collectionFields : CollectionFields, expect : string}) {
