@@ -69,8 +69,9 @@ export function argsToGraphQL(options : {args : PublicMethodArgs, autoPkType : A
     const fields = {}
     for (const [argName, convenientArg] of Object.entries(options.args)) {
         const arg = ensureDetailedPublicMethodArg(convenientArg)
+        const type = valueTypeToGraphQL({ valueType: arg.type, autoPkType: options.autoPkType, collectionTypes: options.collectionTypes });
         fields[argName] = {
-            type: valueTypeToGraphQL({ valueType: arg.type, autoPkType: options.autoPkType, collectionTypes: options.collectionTypes })
+            type: arg.optional ? type : new graphql.GraphQLNonNull(type)
         }
     }
     return fields

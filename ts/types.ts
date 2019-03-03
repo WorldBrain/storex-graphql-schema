@@ -11,7 +11,7 @@ export interface PublicMethodDefinition {
 
 export type PublicMethodArgs = {[name : string] : PublicMethodArg}
 export type PublicMethodArg = PublicMethodValueType | PublicMethodDetailedArg
-export type PublicMethodDetailedArg = { type : PublicMethodValueType }
+export type PublicMethodDetailedArg = { type : PublicMethodValueType, optional? : boolean }
 export const isDetailedPublicMethodArg = (arg : PublicMethodArg) : arg is PublicMethodDetailedArg => !!arg['type']
 export const ensureDetailedPublicMethodArg = (arg : PublicMethodArg) : PublicMethodDetailedArg =>
     isDetailedPublicMethodArg(arg) ? arg : { type: arg }
