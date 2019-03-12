@@ -9,17 +9,16 @@ import { capitalize } from "./utils";
 import { AutoPkType } from "./types";
 import { storexToGraphQLFieldType, collectionsToGrapQL } from "./schema";
 
-export function createStorexGraphQLSchema(options : {
+export function createStorexGraphQLSchema(modules : {[name : string]: StorageModule}, options : {
     storageManager : StorageManager,
-    modules : {[name : string]: StorageModule},
     autoPkType : AutoPkType,
     graphql : any
 }) : graphqlTypes.GraphQLSchema {
     const collectionTypes = collectionsToGrapQL(options.storageManager.registry, {autoPkType: options.autoPkType, graphql: options.graphql})
 
     const graphQLModules = {}
-    for (const [moduleName, module] of Object.entries(options.modules)) {
-        graphQLModules[moduleName] = moduleToGraphQL({module, autoPkType: options.autoPkType, collectionTypes, graphql: options.graphql})
+    for (const [moduleName, module] of Object.entries(modules)) {
+        graphQLModules[moduleName] = moduleToGraphQL(module, {autoPkType: options.autoPkType, collectionTypes, graphql: options.graphql})
     }
 
     const queryType = new options.graphql.GraphQLObjectType({
@@ -29,12 +28,11 @@ export function createStorexGraphQLSchema(options : {
     return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType})
 }
 
-export function moduleToGraphQL(options : {module : StorageModule, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+export function moduleToGraphQL(module : StorageModule, options : {autoPkType : AutoPkType, collectionTypes, graphql : any}) {
     const graphQLMethods = {}
-    for (const [methodName, methodDefinition] of Object.entries((options.module.getConfig()).methods || {})) {
-        const method = options.module[methodName].bind(options.module)
-        graphQLMethods[methodName] = methodToGraphQL({
-            method,
+    for (const [methodName, methodDefinition] of Object.entries((module.getConfig()).methods || {})) {
+        const method = module[methodName].bind(module)
+        graphQLMethods[methodName] = methodToGraphQL(method, {
             definition: methodDefinition as PublicMethodDefinition,
             autoPkType: options.autoPkType,
             collectionTypes: options.collectionTypes,
@@ -53,30 +51,29 @@ export function moduleToGraphQL(options : {module : StorageModule, autoPkType : 
     }
 }
 
-export function methodToGraphQL(options : {method : Function, definition : PublicMethodDefinition, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
-    const returnType = valueToGraphQL(options.definition.returns, {
+export function methodToGraphQL(method : Function, options : {definition : PublicMethodDefinition, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+    const returnType = options.definition.returns !== 'void' ? valueToGraphQL(options.definition.returns, {
         autoPkType: options.autoPkType,
         collectionTypes: options.collectionTypes,
         graphql: options.graphql
-    })
+    }) : null
 
     return {
         type: returnType,
-        args: argsToGraphQL({
-            args: options.definition.args,
+        args: argsToGraphQL(options.definition.args, {
             autoPkType: options.autoPkType,
             collectionTypes: options.collectionTypes,
             graphql: options.graphql
         }),
         resolve: (parent, {name}) => {
-            return options.method({name})
+            return method({name})
         }
     }
 }
 
-export function argsToGraphQL(options : {args : PublicMethodArgs, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+export function argsToGraphQL(args : PublicMethodArgs, options : {autoPkType : AutoPkType, collectionTypes, graphql : any}) {
     const fields = {}
-    for (const [argName, convenientArg] of Object.entries(options.args)) {
+    for (const [argName, convenientArg] of Object.entries(args)) {
         const arg = ensureDetailedPublicMethodValue(convenientArg)
         const type = valueToGraphQL(arg.type, {
             autoPkType: options.autoPkType,

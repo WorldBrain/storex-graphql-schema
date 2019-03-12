@@ -28,7 +28,7 @@ describe('StorageModule translation', () => {
                     }
                 },
                 methods: {
-                    byName: { args: { name: 'string' }, returns: { collection: 'user' } }
+                    byName: { type: 'read-only', args: { name: 'string' }, returns: { collection: 'user' } }
                 }
             })
 
@@ -45,7 +45,7 @@ describe('StorageModule translation', () => {
         })
         await storageManager.collection('user').createObject({name: 'joe', age: 30})
 
-        const schema = createStorexGraphQLSchema({storageManager, modules, autoPkType: 'int', graphql})
+        const schema = createStorexGraphQLSchema(modules, {storageManager, autoPkType: 'int', graphql})
         expectGraphQLSchemaToEqual(schema, `
         type Query {
           users: Users
