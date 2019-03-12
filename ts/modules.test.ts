@@ -58,7 +58,7 @@ describe('StorageModule translation', () => {
         }
         
         type Users {
-          byName(name: String!): User
+          byName(name: String!): User!
         }
         `)
 

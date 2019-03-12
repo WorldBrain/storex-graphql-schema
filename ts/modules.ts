@@ -54,7 +54,7 @@ export function moduleToGraphQL(options : {module : StorageModule, autoPkType : 
 }
 
 export function methodToGraphQL(options : {method : Function, definition : PublicMethodDefinition, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
-    const returnType = valueTypeToGraphQL(options.definition.returns, {
+    const returnType = valueToGraphQL(options.definition.returns, {
         autoPkType: options.autoPkType,
         collectionTypes: options.collectionTypes,
         graphql: options.graphql
@@ -78,13 +78,13 @@ export function argsToGraphQL(options : {args : PublicMethodArgs, autoPkType : A
     const fields = {}
     for (const [argName, convenientArg] of Object.entries(options.args)) {
         const arg = ensureDetailedPublicMethodValue(convenientArg)
-        const type = valueTypeToGraphQL(arg.type, {
+        const type = valueToGraphQL(arg.type, {
             autoPkType: options.autoPkType,
             collectionTypes: options.collectionTypes,
             graphql: options.graphql
         });
         fields[argName] = {
-            type: arg.optional ? type : new options.graphql.GraphQLNonNull(type)
+            type
         }
     }
     return fields
