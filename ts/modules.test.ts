@@ -42,6 +42,15 @@ describe('StorageModule translation', () => {
                     byName: { type: 'read-only', args: { name: 'string' }, returns: { collection: 'user' } },
                     byAge: { type: 'read-only', args: { age: 'int' }, returns: { array: { collection: 'user' } } },
                     setAgeByName: { type: 'mutation', args: { name: 'string', age: 'int' }, returns: { collection: 'user' } },
+                    positionalTest: {
+                        type: 'read-only',
+                        args: {
+                            first: { type: 'string', positional: true },
+                            second: { type: 'string', positional: true },
+                            third: { type: 'string' },
+                        },
+                        returns: { array: 'string' },
+                    }
                 }
             })
 
@@ -56,6 +65,10 @@ describe('StorageModule translation', () => {
             async setAgeByName(options : {name : string, age : number}) {
                 await this.operation('updateAgeByName', options)
                 return this.byName(options)
+            }
+
+            async positionalTest(first : string, second : string, options : {third : string}) {
+                return [first, second, options.third]
             }
         }
 
@@ -94,6 +107,7 @@ describe('StorageModule translation', () => {
         type UsersQuery {
           byName(name: String!): User!
           byAge(age: Int!): [User]!
+          positionalTest(first: String!, second: String!, third: String!): [String]!
         }
         `)
     })
@@ -137,6 +151,22 @@ describe('StorageModule translation', () => {
                     { name: 'joe', age: 30 },
                     { name: 'bob', age: 30 },
                 ]
+            }
+        }})
+    })
+
+    it('should be able to process positional arguments', async () => {
+        const { storageManager, schema } = await setupTest()
+        const result = await graphql.graphql(schema, `
+        query {
+            users {
+                positionalTest(first: "foo", second: "bar", third: "eggs")
+            }
+        }
+        `)
+        expect(result).toEqual({data: {
+            users: {
+                positionalTest: ['foo', 'bar', 'eggs']
             }
         }})
     })

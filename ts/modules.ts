@@ -3,7 +3,7 @@ import StorageManager from '@worldbrain/storex'
 import { StorageModule } from '@worldbrain/storex-pattern-modules';
 import { 
     PublicMethodDefinition, PublicMethodArgs, PublicMethodValueType,
-    ensureDetailedPublicMethodValue, isPublicMethodCollectionType, PublicMethodValue, isPublicMethodArrayType
+    ensureDetailedPublicMethodValue, isPublicMethodCollectionType, PublicMethodValue, isPublicMethodArrayType, PublicMethodDetailedArg
 } from "@worldbrain/storex-pattern-modules/lib/types";
 import { capitalize } from "./utils";
 import { AutoPkType } from "./types";
@@ -61,13 +61,27 @@ export function moduleToGraphQL(module : StorageModule, moduleName : string, opt
 }
 
 export function methodToGraphQL(method : Function, definition : PublicMethodDefinition, options : {autoPkType : AutoPkType, collectionTypes, graphql : any}) {
-    const returnType = definition.returns !== 'void' ? valueToGraphQL(definition.returns, options) : null
+    const returnType = valueToGraphQL(definition.returns, options)
 
     return {
         type: returnType,
         args: argsToGraphQL(definition.args, options),
-        resolve: async (parent, args) => {
-            const toReturn = await method(args)
+        resolve: async (parent, argsObject) => {
+            const options = {}
+            const args = []
+            for (const [argName, argDefinition] of Object.entries(definition.args)) {
+                const argValue = argsObject[argName]
+                if ((ensureDetailedPublicMethodValue(argDefinition) as PublicMethodDetailedArg).positional) {
+                    args.push(argValue)
+                } else {
+                    options[argName] = argValue
+                }
+            }
+            if (Object.keys(options).length) {
+                args.push(options)
+            }
+            
+            const toReturn = await method(...args)
             return toReturn
         }
     }
