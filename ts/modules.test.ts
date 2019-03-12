@@ -1,5 +1,6 @@
 import * as expect from 'expect'
 import * as graphql from 'graphql'
+import { maskErrors } from 'graphql-errors'
 import { StorageModule, StorageModuleConfig } from '@worldbrain/storex-pattern-modules'
 import { setupStorexTest } from '@worldbrain/storex-pattern-modules/lib/index.tests'
 import { createStorexGraphQLSchema } from './modules'
@@ -31,10 +32,10 @@ describe('StorageModule translation', () => {
                         collection: 'user',
                         args: {age: '$age:int'}
                     },
-                    updageAgeByName: {
-                        operation: 'findObject',
+                    updateAgeByName: {
+                        operation: 'updateObjects',
                         collection: 'user',
-                        args: {name: '$name:string', age: '$age:int'}
+                        args: [{name: '$name:string'}, {age: '$age:int'}]
                     },
                 },
                 methods: {
@@ -65,6 +66,7 @@ describe('StorageModule translation', () => {
             }
         })
         const schema = createStorexGraphQLSchema(modules, {storageManager, autoPkType: 'int', graphql})
+        maskErrors(schema)
         return { storageManager, modules, schema }
     }
 
@@ -117,7 +119,7 @@ describe('StorageModule translation', () => {
         }})
     })
 
-    it('should be able to execute return lists', async () => {
+    it('should be able to return lists', async () => {
         const { storageManager, schema } = await setupTest()
         await storageManager.collection('user').createObject({name: 'joe', age: 30})
         await storageManager.collection('user').createObject({name: 'bob', age: 30})
@@ -135,6 +137,24 @@ describe('StorageModule translation', () => {
                     { name: 'joe', age: 30 },
                     { name: 'bob', age: 30 },
                 ]
+            }
+        }})
+    })
+
+    it('should be able to execute mutations', async () => {
+        const { storageManager, schema } = await setupTest()
+        const { object } = await storageManager.collection('user').createObject({name: 'joe', age: 30})
+
+        const result = await graphql.graphql(schema, `
+        mutation {
+            users {
+                setAgeByName(name: "joe", age: 40) { id, name, age }
+            }
+        }
+        `)
+        expect(result).toEqual({data: {
+            users: {
+                setAgeByName: { id: object.id, name: 'joe', age: 40 },
             }
         }})
     })
