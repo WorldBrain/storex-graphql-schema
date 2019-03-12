@@ -1,16 +1,10 @@
-import * as graphql from "graphql";
+import * as graphqlTypes from "graphql";
 import StorageRegistry from "@worldbrain/storex/lib/registry";
 import { FieldType, CollectionFields, CollectionDefinitions } from "@worldbrain/storex/lib/types";
 import { capitalize } from "./utils";
 import { AutoPkType } from "./types";
 
-const FIELD_TYPES = {
-    string: graphql.GraphQLString,
-    int: graphql.GraphQLInt,
-    boolean: graphql.GraphQLBoolean,
-}
-
-export function exportSchemaTypes(storageRegistry : StorageRegistry, options : {autoPkType : AutoPkType}) : graphql.GraphQLSchema {
+export function exportSchemaTypes(storageRegistry : StorageRegistry, options : {autoPkType : AutoPkType, graphql : any}) : graphqlTypes.GraphQLSchema {
     const types = collectionsToGrapQL(storageRegistry, options)
 
     const queryFields = {}
@@ -20,17 +14,17 @@ export function exportSchemaTypes(storageRegistry : StorageRegistry, options : {
         }
     }
 
-    const queryType = new graphql.GraphQLObjectType({
+    const queryType = new options.graphql.GraphQLObjectType({
         name: 'Query',
         fields: queryFields
     })
-    return new graphql.GraphQLSchema({query: queryType})
+    return new options.graphql.GraphQLSchema({query: queryType})
 }
 
-export function collectionsToGrapQL(storageRegistry : StorageRegistry, options : {autoPkType : AutoPkType}) {
-    const types : {[name : string] : graphql.GraphQLObjectType} = {}
+export function collectionsToGrapQL(storageRegistry : StorageRegistry, options : {autoPkType : AutoPkType, graphql : any}) {
+    const types : {[name : string] : graphqlTypes.GraphQLObjectType} = {}
     for (const [collectionName, collectionDefinition] of Object.entries(storageRegistry.collections)) {
-        types[collectionName] = new graphql.GraphQLObjectType({
+        types[collectionName] = new options.graphql.GraphQLObjectType({
             name: capitalize(collectionName),
             fields: storexToGrapQLFields(collectionDefinition.fields, options)
         })
@@ -38,16 +32,22 @@ export function collectionsToGrapQL(storageRegistry : StorageRegistry, options :
     return types
 }
 
-export function storexToGrapQLFields(collectionFields : CollectionFields, options : {autoPkType : AutoPkType}) {
+export function storexToGrapQLFields(collectionFields : CollectionFields, options : {autoPkType : AutoPkType, graphql : any}) {
     const fields = {}
     for (const [fieldName, fieldDefinition] of Object.entries(collectionFields)) {
         const fieldType = storexToGraphQLFieldType(fieldDefinition.type, options);
-        fields[fieldName] = {type: fieldDefinition.optional ? fieldType : new graphql.GraphQLNonNull(fieldType)}
+        fields[fieldName] = {type: fieldDefinition.optional ? fieldType : new options.graphql.GraphQLNonNull(fieldType)}
     }
     return fields
 }
 
-export function storexToGraphQLFieldType(fieldType : FieldType, options : {autoPkType : AutoPkType}) {
+export function storexToGraphQLFieldType(fieldType : FieldType, options : {autoPkType : AutoPkType, graphql : any}) {
+    const FIELD_TYPES = {
+        string: options.graphql.GraphQLString,
+        int: options.graphql.GraphQLInt,
+        boolean: options.graphql.GraphQLBoolean,
+    }    
+
     if (fieldType === 'auto-pk') {
         fieldType = options.autoPkType
     }

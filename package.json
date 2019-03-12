@@ -19,7 +19,7 @@
   "dependencies": {
     "@worldbrain/storex": "^0.3.3",
     "@worldbrain/storex-pattern-modules": "^0.1.2",
-    "graphql": "^14.1.1",
+    "graphql": "^14.0.0",
     "lodash": "^4.17.10",
     "source-map-support": "^0.4.18"
   },
@@ -33,10 +33,12 @@
     "chai": "^4.1.2",
     "expect": "^23.5.0",
     "fake-indexeddb": "^2.0.4",
-    "graphql-yoga": "^1.17.4",
     "mocha": "^4.0.1",
     "sinon": "^4.1.2",
     "ts-node": "^7.0.1",
     "typescript": "^3.0.1"
+  },
+  "resolutions": {
+    "**/graphql": "^14.0.0"
   }
 }

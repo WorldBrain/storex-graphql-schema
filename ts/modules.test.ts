@@ -1,18 +1,16 @@
 import * as expect from 'expect'
-import { makeExecutableSchema } from 'graphql-tools'
 import * as graphql from 'graphql'
 import { StorageModule, StorageModuleConfig } from '@worldbrain/storex-pattern-modules'
 import { setupStorexTest } from '@worldbrain/storex-pattern-modules/lib/index.tests'
-import { createStorexGraphQLSchema } from './modules';
-import { PublicMethodDefinitions, StorageModuleConfigWithMethods } from './types';
-import { expectGraphQLSchemaToEqual } from './index.tests';
+import { createStorexGraphQLSchema } from './modules'
+import { expectGraphQLSchemaToEqual } from './index.tests'
 
 describe('StorageModule translation', () => {
     // https://graphql.org/graphql-js/constructing-types/
 
     it('should be able to give access to a StorageModule trough a GraphQL API', async () => {
         class UserModule extends StorageModule {
-            getConfig = () : StorageModuleConfigWithMethods => ({
+            getConfig = () : StorageModuleConfig => ({
                 collections: {
                     user: {
                         version: new Date('2019-01-01'),
@@ -47,7 +45,7 @@ describe('StorageModule translation', () => {
         })
         await storageManager.collection('user').createObject({name: 'joe', age: 30})
 
-        const schema = createStorexGraphQLSchema({storageManager, modules, autoPkType: 'int'})
+        const schema = createStorexGraphQLSchema({storageManager, modules, autoPkType: 'int', graphql})
         expectGraphQLSchemaToEqual(schema, `
         type Query {
           users: Users

@@ -1,47 +1,49 @@
-import * as graphql from "graphql";
+import * as graphqlTypes from "graphql";
 import StorageManager from '@worldbrain/storex'
 import { StorageModule } from '@worldbrain/storex-pattern-modules';
+import { 
+    PublicMethodDefinition, PublicMethodArgs, PublicMethodValueType,
+    ensureDetailedPublicMethodValue, isPublicMethodCollectionType, PublicMethodValue
+} from "@worldbrain/storex-pattern-modules/lib/types";
 import { capitalize } from "./utils";
-import { StorageModuleConfigWithMethods, PublicMethodDefinition, PublicMethodArgs, ensureDetailedPublicMethodArg, AutoPkType, PublicMethodValueType, isPublicMethodCollectionType } from "./types";
+import { AutoPkType } from "./types";
 import { storexToGraphQLFieldType, collectionsToGrapQL } from "./schema";
 
 export function createStorexGraphQLSchema(options : {
     storageManager : StorageManager,
     modules : {[name : string]: StorageModule},
-    autoPkType : AutoPkType
-}) : graphql.GraphQLSchema {
-    const collectionTypes = collectionsToGrapQL(options.storageManager.registry, {autoPkType: options.autoPkType})
+    autoPkType : AutoPkType,
+    graphql : any
+}) : graphqlTypes.GraphQLSchema {
+    const collectionTypes = collectionsToGrapQL(options.storageManager.registry, {autoPkType: options.autoPkType, graphql: options.graphql})
 
     const graphQLModules = {}
     for (const [moduleName, module] of Object.entries(options.modules)) {
-        graphQLModules[moduleName] = moduleToGraphQL({module, autoPkType: options.autoPkType, collectionTypes})
+        graphQLModules[moduleName] = moduleToGraphQL({module, autoPkType: options.autoPkType, collectionTypes, graphql: options.graphql})
     }
-    // graphQLModules['bla'] = {
-    //     type: graphql.GraphQLInt,
-    //     resolve: () => 5
-    // }
 
-    const queryType = new graphql.GraphQLObjectType({
+    const queryType = new options.graphql.GraphQLObjectType({
         name: 'Query',
         fields: graphQLModules
     })
-    return new graphql.GraphQLSchema({query: queryType})
+    return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType})
 }
 
-export function moduleToGraphQL(options : {module : StorageModule, autoPkType : AutoPkType, collectionTypes}) {
+export function moduleToGraphQL(options : {module : StorageModule, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
     const graphQLMethods = {}
-    for (const [methodName, methodDefinition] of Object.entries((options.module.getConfig() as StorageModuleConfigWithMethods).methods)) {
+    for (const [methodName, methodDefinition] of Object.entries((options.module.getConfig()).methods || {})) {
         const method = options.module[methodName].bind(options.module)
         graphQLMethods[methodName] = methodToGraphQL({
             method,
-            definition: methodDefinition,
+            definition: methodDefinition as PublicMethodDefinition,
             autoPkType: options.autoPkType,
-            collectionTypes: options.collectionTypes
+            collectionTypes: options.collectionTypes,
+            graphql: options.graphql
         })
     }
 
     return {
-        type: new graphql.GraphQLObjectType({
+        type: new options.graphql.GraphQLObjectType({
             name: 'Users',
             fields: graphQLMethods,
         }),
@@ -51,13 +53,20 @@ export function moduleToGraphQL(options : {module : StorageModule, autoPkType : 
     }
 }
 
-export function methodToGraphQL(options : {method : Function, definition : PublicMethodDefinition, autoPkType : AutoPkType, collectionTypes}) {
+export function methodToGraphQL(options : {method : Function, definition : PublicMethodDefinition, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+    const returnType = valueTypeToGraphQL(options.definition.returns, {
+        autoPkType: options.autoPkType,
+        collectionTypes: options.collectionTypes,
+        graphql: options.graphql
+    })
+
     return {
-        type: valueTypeToGraphQL({valueType: options.definition.returns, autoPkType: options.autoPkType, collectionTypes: options.collectionTypes}),
+        type: returnType,
         args: argsToGraphQL({
             args: options.definition.args,
             autoPkType: options.autoPkType,
-            collectionTypes: options.collectionTypes
+            collectionTypes: options.collectionTypes,
+            graphql: options.graphql
         }),
         resolve: (parent, {name}) => {
             return options.method({name})
@@ -65,22 +74,32 @@ export function methodToGraphQL(options : {method : Function, definition : Publi
     }
 }
 
-export function argsToGraphQL(options : {args : PublicMethodArgs, autoPkType : AutoPkType, collectionTypes}) {
+export function argsToGraphQL(options : {args : PublicMethodArgs, autoPkType : AutoPkType, collectionTypes, graphql : any}) {
     const fields = {}
     for (const [argName, convenientArg] of Object.entries(options.args)) {
-        const arg = ensureDetailedPublicMethodArg(convenientArg)
-        const type = valueTypeToGraphQL({ valueType: arg.type, autoPkType: options.autoPkType, collectionTypes: options.collectionTypes });
+        const arg = ensureDetailedPublicMethodValue(convenientArg)
+        const type = valueTypeToGraphQL(arg.type, {
+            autoPkType: options.autoPkType,
+            collectionTypes: options.collectionTypes,
+            graphql: options.graphql
+        });
         fields[argName] = {
-            type: arg.optional ? type : new graphql.GraphQLNonNull(type)
+            type: arg.optional ? type : new options.graphql.GraphQLNonNull(type)
         }
     }
     return fields
 }
 
-export function valueTypeToGraphQL(options : {valueType : PublicMethodValueType, autoPkType : AutoPkType, collectionTypes}) {
-    if (typeof options.valueType === 'string') {
-        return storexToGraphQLFieldType(options.valueType, {autoPkType: options.autoPkType})
-    } else if (isPublicMethodCollectionType(options.valueType)) {
-        return options.collectionTypes[options.valueType.collection]
+export function valueToGraphQL(value : PublicMethodValue, options : {autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+    const detailedValue = ensureDetailedPublicMethodValue(value)
+    const type = valueTypeToGraphQL(detailedValue.type, options)
+    return detailedValue.optional ? type : new options.graphql.GraphQLNonNull(type)
+}
+
+export function valueTypeToGraphQL(valueType : PublicMethodValueType, options : {autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+    if (typeof valueType === 'string') {
+        return storexToGraphQLFieldType(valueType, {autoPkType: options.autoPkType, graphql: options.graphql})
+    } else if (isPublicMethodCollectionType(valueType)) {
+        return options.collectionTypes[valueType.collection]
     }
 }

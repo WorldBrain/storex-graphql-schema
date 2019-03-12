@@ -1,3 +1,4 @@
+import * as graphql from 'graphql'
 import StorageRegistry from '@worldbrain/storex/lib/registry'
 import { CollectionDefinitionMap, CollectionFields, CollectionField } from '@worldbrain/storex/lib/types';
 import { exportSchemaTypes } from './schema';
@@ -10,7 +11,7 @@ describe('Schema generation', () => {
             const registry = new StorageRegistry({fieldTypes: new FieldTypeRegistry()})
             registry.registerCollections(options.collections)
             await registry.finishInitialization()
-            expectGraphQLSchemaToEqual(exportSchemaTypes(registry, {autoPkType: 'int'}), options.expect)
+            expectGraphQLSchemaToEqual(exportSchemaTypes(registry, {autoPkType: 'int', graphql}), options.expect)
         }
 
         async function runSimpleTest(options : {collectionName : string, collectionFields : CollectionFields, expect : string}) {
