@@ -16,28 +16,42 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
 }) : graphqlTypes.GraphQLSchema {
     const collectionTypes = collectionsToGrapQL(options.storageManager.registry, options)
 
-    const graphQLModules = {}
+    const queryModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        graphQLModules[moduleName] = moduleToGraphQL(module, { ...options, collectionTypes })
+        queryModules[moduleName] = moduleToGraphQL(module, { ...options, collectionTypes, type: 'read-only' })
+    }
+
+    const mutationModules = {}
+    for (const [moduleName, module] of Object.entries(modules)) {
+        mutationModules[moduleName] = moduleToGraphQL(module, { ...options, collectionTypes, type: 'mutation' })
     }
 
     const queryType = new options.graphql.GraphQLObjectType({
         name: 'Query',
-        fields: graphQLModules
+        fields: queryModules
     })
-    return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType})
+    const mutationType = new options.graphql.GraphQLObjectType({
+        name: 'Mutation',
+        fields: mutationModules
+    })
+    return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType, mutation: mutationType})
 }
 
-export function moduleToGraphQL(module : StorageModule, options : {autoPkType : AutoPkType, collectionTypes, graphql : any}) {
+export function moduleToGraphQL(module : StorageModule, options : {autoPkType : AutoPkType, collectionTypes, graphql : any, type: 'read-only' | 'mutation'}) {
     const graphQLMethods = {}
     for (const [methodName, methodDefinition] of Object.entries((module.getConfig()).methods || {})) {
+        if (methodDefinition.type !== options.type) {
+            continue
+        }
+
         const method = module[methodName].bind(module)
         graphQLMethods[methodName] = methodToGraphQL(method, methodDefinition as PublicMethodDefinition, options)
     }
 
+    const suffix = options.type === 'read-only' ? 'Query' : 'Mutation'
     return {
         type: new options.graphql.GraphQLObjectType({
-            name: 'Users',
+            name: `Users${suffix}`,
             fields: graphQLMethods,
         }),
         resolve: () => {

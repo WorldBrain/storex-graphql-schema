@@ -25,11 +25,22 @@ describe('StorageModule translation', () => {
                         operation: 'findObject',
                         collection: 'user',
                         args: {name: '$name:string'}
-                    }
+                    },
+                    findByAge: {
+                        operation: 'findObjects',
+                        collection: 'user',
+                        args: {age: '$age:int'}
+                    },
+                    updageAgeByName: {
+                        operation: 'findObject',
+                        collection: 'user',
+                        args: {name: '$name:string', age: '$age:int'}
+                    },
                 },
                 methods: {
                     byName: { type: 'read-only', args: { name: 'string' }, returns: { collection: 'user' } },
-                    byAge: { type: 'read-only', args: { age: 'int' }, returns: { array: { collection: 'user' } } }
+                    byAge: { type: 'read-only', args: { age: 'int' }, returns: { array: { collection: 'user' } } },
+                    setAgeByName: { type: 'mutation', args: { name: 'string', age: 'int' }, returns: { collection: 'user' } },
                 }
             })
 
@@ -39,6 +50,11 @@ describe('StorageModule translation', () => {
 
             async byAge({age} : {age : number}) {
                 return this.operation('findByAge', {age})
+            }
+
+            async setAgeByName(options : {name : string, age : number}) {
+                await this.operation('updateAgeByName', options)
+                return this.byName(options)
             }
         }
 
@@ -55,8 +71,12 @@ describe('StorageModule translation', () => {
     it('should be able generate a GraphQL schema for StorageModules', async () => {
         const { schema } = await setupTest()
         expectGraphQLSchemaToEqual(schema, `
+        type Mutation {
+          users: UsersMutation
+        }
+        
         type Query {
-          users: Users
+          users: UsersQuery
         }
         
         type User {
@@ -65,7 +85,11 @@ describe('StorageModule translation', () => {
           id: Int!
         }
         
-        type Users {
+        type UsersMutation {
+          setAgeByName(name: String!, age: Int!): User!
+        }
+        
+        type UsersQuery {
           byName(name: String!): User!
           byAge(age: Int!): [User]!
         }
