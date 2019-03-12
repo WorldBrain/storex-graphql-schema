@@ -18,7 +18,7 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
 
     const queryModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        queryModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, type: 'read-only' })
+        queryModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, type: 'query' })
     }
 
     const mutationModules = {}
@@ -37,7 +37,7 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
     return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType, mutation: mutationType})
 }
 
-export function moduleToGraphQL(module : StorageModule, moduleName : string, options : {autoPkType : AutoPkType, collectionTypes, graphql : any, type: 'read-only' | 'mutation'}) {
+export function moduleToGraphQL(module : StorageModule, moduleName : string, options : {autoPkType : AutoPkType, collectionTypes, graphql : any, type: 'query' | 'mutation'}) {
     const graphQLMethods = {}
     for (const [methodName, methodDefinition] of Object.entries((module.getConfig()).methods || {})) {
         if (methodDefinition.type !== options.type) {
@@ -48,7 +48,7 @@ export function moduleToGraphQL(module : StorageModule, moduleName : string, opt
         graphQLMethods[methodName] = methodToGraphQL(method, methodDefinition as PublicMethodDefinition, options)
     }
 
-    const suffix = options.type === 'read-only' ? 'Query' : 'Mutation'
+    const suffix = options.type === 'query' ? 'Query' : 'Mutation'
     return {
         type: new options.graphql.GraphQLObjectType({
             name: `${capitalize(moduleName)}${suffix}`,

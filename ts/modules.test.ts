@@ -39,11 +39,11 @@ describe('StorageModule translation', () => {
                     },
                 },
                 methods: {
-                    byName: { type: 'read-only', args: { name: 'string' }, returns: { collection: 'user' } },
-                    byAge: { type: 'read-only', args: { age: 'int' }, returns: { array: { collection: 'user' } } },
+                    byName: { type: 'query', args: { name: 'string' }, returns: { collection: 'user' } },
+                    byAge: { type: 'query', args: { age: 'int' }, returns: { array: { collection: 'user' } } },
                     setAgeByName: { type: 'mutation', args: { name: 'string', age: 'int' }, returns: { collection: 'user' } },
                     positionalTest: {
-                        type: 'read-only',
+                        type: 'query',
                         args: {
                             first: { type: 'string', positional: true },
                             second: { type: 'string', positional: true },
