@@ -18,12 +18,12 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
 
     const queryModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        queryModules[moduleName] = moduleToGraphQL(module, { ...options, collectionTypes, type: 'read-only' })
+        queryModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, type: 'read-only' })
     }
 
     const mutationModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        mutationModules[moduleName] = moduleToGraphQL(module, { ...options, collectionTypes, type: 'mutation' })
+        mutationModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, type: 'mutation' })
     }
 
     const queryType = new options.graphql.GraphQLObjectType({
@@ -37,7 +37,7 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
     return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType, mutation: mutationType})
 }
 
-export function moduleToGraphQL(module : StorageModule, options : {autoPkType : AutoPkType, collectionTypes, graphql : any, type: 'read-only' | 'mutation'}) {
+export function moduleToGraphQL(module : StorageModule, moduleName : string, options : {autoPkType : AutoPkType, collectionTypes, graphql : any, type: 'read-only' | 'mutation'}) {
     const graphQLMethods = {}
     for (const [methodName, methodDefinition] of Object.entries((module.getConfig()).methods || {})) {
         if (methodDefinition.type !== options.type) {
@@ -51,7 +51,7 @@ export function moduleToGraphQL(module : StorageModule, options : {autoPkType : 
     const suffix = options.type === 'read-only' ? 'Query' : 'Mutation'
     return {
         type: new options.graphql.GraphQLObjectType({
-            name: `Users${suffix}`,
+            name: `${capitalize(moduleName)}${suffix}`,
             fields: graphQLMethods,
         }),
         resolve: () => {
@@ -66,8 +66,9 @@ export function methodToGraphQL(method : Function, definition : PublicMethodDefi
     return {
         type: returnType,
         args: argsToGraphQL(definition.args, options),
-        resolve: (parent, {name}) => {
-            return method({name})
+        resolve: async (parent, args) => {
+            const toReturn = await method(args)
+            return toReturn
         }
     }
 }

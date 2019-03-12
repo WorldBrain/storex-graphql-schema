@@ -88,7 +88,7 @@ describe('StorageModule translation', () => {
         type UsersMutation {
           setAgeByName(name: String!, age: Int!): User!
         }
-        
+
         type UsersQuery {
           byName(name: String!): User!
           byAge(age: Int!): [User]!
@@ -96,7 +96,7 @@ describe('StorageModule translation', () => {
         `)
     })
 
-    it('should be able to give access to a StorageModule trough a GraphQL API', async () => {
+    it('should be able to execute simple queries', async () => {
         const { storageManager, schema } = await setupTest()
         await storageManager.collection('user').createObject({name: 'joe', age: 30})
 
@@ -113,6 +113,28 @@ describe('StorageModule translation', () => {
                     name: 'joe',
                     age: 30,
                 }
+            }
+        }})
+    })
+
+    it('should be able to execute return lists', async () => {
+        const { storageManager, schema } = await setupTest()
+        await storageManager.collection('user').createObject({name: 'joe', age: 30})
+        await storageManager.collection('user').createObject({name: 'bob', age: 30})
+
+        const result = await graphql.graphql(schema, `
+        query {
+            users {
+                byAge(age: 30) { name, age }
+            }
+        }
+        `)
+        expect(result).toEqual({data: {
+            users: {
+                byAge: [
+                    { name: 'joe', age: 30 },
+                    { name: 'bob', age: 30 },
+                ]
             }
         }})
     })
