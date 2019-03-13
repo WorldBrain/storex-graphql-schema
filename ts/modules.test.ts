@@ -56,6 +56,11 @@ describe('StorageModule translation', () => {
                         args: {},
                         returns: { object: { foo: 'string', bar: 'int' } }
                     },
+                    voidTest: {
+                        type: 'query',
+                        args: {},
+                        returns: 'void'
+                    },
                 }
             })
 
@@ -79,6 +84,8 @@ describe('StorageModule translation', () => {
             async objectReturnTest() {
                 return { foo: 'eggs', bar: 42 }
             }
+
+            async voidTest() {}
         }
 
         const { storageManager, modules } = await setupStorexTest<{users : UserModule}>({
@@ -118,11 +125,16 @@ describe('StorageModule translation', () => {
           byAge(age: Int!): [User]!
           positionalTest(first: String!, second: String!, third: String!): [String]!
           objectReturnTest: UsersQueryObjectReturnTestReturnType!
+          voidTest: Void
         }
 
         type UsersQueryObjectReturnTestReturnType {
           foo: String!
           bar: Int!
+        }
+
+        type Void {
+          void: Boolean
         }
         `)
     })
@@ -171,7 +183,7 @@ describe('StorageModule translation', () => {
     })
 
     it('should be able to return objects', async () => {
-        const { storageManager, schema } = await setupTest()
+        const { schema } = await setupTest()
 
         const result = await graphql.graphql(schema, `
         query {
@@ -186,6 +198,23 @@ describe('StorageModule translation', () => {
                     foo: 'eggs',
                     bar: 42,
                 }
+            }
+        }})
+    })
+
+    it('should be able to return void', async () => {
+        const { schema } = await setupTest()
+
+        const result = await graphql.graphql(schema, `
+        query {
+            users {
+                voidTest { void }
+            }
+        }
+        `)
+        expect(result).toEqual({data: {
+            users: {
+                voidTest: null
             }
         }})
     })
