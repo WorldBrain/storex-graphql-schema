@@ -10,35 +10,39 @@ import { AutoPkType } from "./types";
 import { storexToGraphQLFieldType, collectionsToGrapQL } from "./schema";
 
 type CommonOptions = {autoPkType : AutoPkType, graphql : any}
-type CommonOptionsWithTypes = CommonOptions & {collectionTypes, voidType}
+type CommonOptionsWithTypes = CommonOptions & {collectionTypes, collectionInputs, voidType}
 
 export function createStorexGraphQLSchema(modules : {[name : string]: StorageModule}, options : {
     storageManager : StorageManager,
 } & CommonOptions) : graphqlTypes.GraphQLSchema {
     const collectionTypes = collectionsToGrapQL(options.storageManager.registry, options)
+    const collectionInputs = collectionsToGrapQL(options.storageManager.registry, { ...options, asInput: true })
     const voidType = new options.graphql.GraphQLObjectType({
         name: 'Void',
-        fields: { void: { type: valueToGraphQL({ type: 'boolean', optional: true }, { ...options, collectionTypes, voidType: null }) } },
+        fields: { void: { type: valueToGraphQL({ type: 'boolean', optional: true }, { ...options, collectionTypes, collectionInputs, voidType: null }) } },
     })
 
     const queryModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        queryModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, voidType, type: 'query' })
+        queryModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, collectionInputs, voidType, type: 'query' })
     }
 
     const mutationModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        mutationModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, voidType, type: 'mutation' })
+        const graphQLModule = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, collectionInputs, voidType, type: 'mutation' });
+        if (graphQLModule) {
+            mutationModules[moduleName] = graphQLModule
+        }
     }
 
     const queryType = new options.graphql.GraphQLObjectType({
         name: 'Query',
         fields: queryModules
     })
-    const mutationType = new options.graphql.GraphQLObjectType({
+    const mutationType = Object.keys(mutationModules).length ? new options.graphql.GraphQLObjectType({
         name: 'Mutation',
         fields: mutationModules
-    })
+    }) : null
     return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType, mutation: mutationType})
 }
 
@@ -53,6 +57,9 @@ export function moduleToGraphQL(module : StorageModule, moduleName : string, opt
 
         const method = module[methodName].bind(module)
         graphQLMethods[methodName] = methodToGraphQL(method, methodName, methodDefinition as PublicMethodDefinition, {...options, moduleName})
+    }
+    if (!Object.keys(graphQLMethods).length) {
+        return null
     }
 
     const suffix = options.type === 'query' ? 'Query' : 'Mutation'
@@ -74,7 +81,7 @@ export function methodToGraphQL(method : Function, methodName : string, definiti
 
     return {
         type: returnType,
-        args: valuesToGraphQL(definition.args, options),
+        args: valuesToGraphQL(definition.args, { ...options, asInput: true }),
         resolve: async (parent, argsObject) => {
             const options = {}
             const args = []
@@ -96,7 +103,7 @@ export function methodToGraphQL(method : Function, methodName : string, definiti
     }
 }
 
-export function valuesToGraphQL(values : PublicMethodValues, options : CommonOptionsWithTypes) {
+export function valuesToGraphQL(values : PublicMethodValues, options : CommonOptionsWithTypes & {asInput? : boolean}) {
     const fields = {}
     for (const [valueName, value] of Object.entries(values)) {
         const detailedValue = ensureDetailedPublicMethodValue(value)
@@ -137,18 +144,22 @@ export function objectReturnTypeToGraphQL(
     return value.optional ? type : new options.graphql.GraphQLNonNull(type)
 }
 
-export function valueToGraphQL(value : PublicMethodValue, options : CommonOptionsWithTypes) {
+export function valueToGraphQL(value : PublicMethodValue, options : CommonOptionsWithTypes & {asInput? : boolean}) {
     const detailedValue = ensureDetailedPublicMethodValue(value)
     const type = valueTypeToGraphQL(detailedValue.type, options)
     return detailedValue.optional ? type : new options.graphql.GraphQLNonNull(type)
 }
 
-export function valueTypeToGraphQL(valueType : PublicMethodValueType, options : CommonOptionsWithTypes) {
+export function valueTypeToGraphQL(valueType : PublicMethodValueType, options : CommonOptionsWithTypes & {asInput? : boolean}) {
     if (typeof valueType === 'string') {
         return storexToGraphQLFieldType(valueType, {autoPkType: options.autoPkType, graphql: options.graphql})
     } else if (isPublicMethodArrayType(valueType)) {
         return new options.graphql.GraphQLList(valueTypeToGraphQL(valueType.array, options))
     } else if (isPublicMethodCollectionType(valueType)) {
-        return options.collectionTypes[valueType.collection]
+        if (options.asInput) {
+            return options.collectionInputs[valueType.collection]
+        } else {
+            return options.collectionTypes[valueType.collection]
+        }
     }
 }

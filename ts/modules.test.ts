@@ -22,6 +22,10 @@ describe('StorageModule translation', () => {
                     }
                 },
                 operations: {
+                    createUser: {
+                        operation: 'createObject',
+                        collection: 'user',
+                    },
                     findByName: {
                         operation: 'findObject',
                         collection: 'user',
@@ -42,6 +46,7 @@ describe('StorageModule translation', () => {
                     byName: { type: 'query', args: { name: 'string' }, returns: { collection: 'user' } },
                     byAge: { type: 'query', args: { age: 'int' }, returns: { array: { collection: 'user' } } },
                     setAgeByName: { type: 'mutation', args: { name: 'string', age: 'int' }, returns: { collection: 'user' } },
+                    createUser: { type: 'mutation', args: { user: { collection: 'user' } }, returns: { collection: 'user' } },
                     positionalTest: {
                         type: 'query',
                         args: {
@@ -75,6 +80,11 @@ describe('StorageModule translation', () => {
             async setAgeByName(options : {name : string, age : number}) {
                 await this.operation('updateAgeByName', options)
                 return this.byName(options)
+            }
+
+            async createUser(options : { user : { name : string, age : number } }) {
+                const { object } = await this.operation('createUser', options.user)
+                return object
             }
 
             async positionalTest(first : string, second : string, options : {third : string}) {
@@ -116,8 +126,14 @@ describe('StorageModule translation', () => {
           id: Int!
         }
 
+        input UserInput {
+          name: String!
+          age: Int!
+        }
+
         type UsersMutation {
           setAgeByName(name: String!, age: Int!): User!
+          createUser(user: UserInput!): User!
         }
 
         type UsersQuery {
@@ -249,6 +265,23 @@ describe('StorageModule translation', () => {
         expect(result).toEqual({data: {
             users: {
                 setAgeByName: { id: object.id, name: 'joe', age: 40 },
+            }
+        }})
+    })
+
+    it('should be able to execute mutations with collection objects as params', async () => {
+        const { storageManager, schema } = await setupTest()
+        
+        const result = await graphql.graphql(schema, `
+        mutation {
+            users {
+                createUser(user: {name: "joe", age: 40}) { id, name, age }
+            }
+        }
+        `)
+        expect(result).toEqual({data: {
+            users: {
+                createUser: { id: 1, name: 'joe', age: 40 },
             }
         }})
     })
