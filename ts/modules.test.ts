@@ -50,7 +50,12 @@ describe('StorageModule translation', () => {
                             third: { type: 'string' },
                         },
                         returns: { array: 'string' },
-                    }
+                    },
+                    objectReturnTest: {
+                        type: 'query',
+                        args: {},
+                        returns: { object: { foo: 'string', bar: 'int' } }
+                    },
                 }
             })
 
@@ -69,6 +74,10 @@ describe('StorageModule translation', () => {
 
             async positionalTest(first : string, second : string, options : {third : string}) {
                 return [first, second, options.third]
+            }
+
+            async objectReturnTest() {
+                return { foo: 'eggs', bar: 42 }
             }
         }
 
@@ -99,7 +108,7 @@ describe('StorageModule translation', () => {
           age: Int!
           id: Int!
         }
-        
+
         type UsersMutation {
           setAgeByName(name: String!, age: Int!): User!
         }
@@ -108,6 +117,12 @@ describe('StorageModule translation', () => {
           byName(name: String!): User!
           byAge(age: Int!): [User]!
           positionalTest(first: String!, second: String!, third: String!): [String]!
+          objectReturnTest: UsersQueryObjectReturnTestReturnType!
+        }
+
+        type UsersQueryObjectReturnTestReturnType {
+          foo: String!
+          bar: Int!
         }
         `)
     })
@@ -151,6 +166,26 @@ describe('StorageModule translation', () => {
                     { name: 'joe', age: 30 },
                     { name: 'bob', age: 30 },
                 ]
+            }
+        }})
+    })
+
+    it('should be able to return objects', async () => {
+        const { storageManager, schema } = await setupTest()
+
+        const result = await graphql.graphql(schema, `
+        query {
+            users {
+                objectReturnTest { foo, bar }
+            }
+        }
+        `)
+        expect(result).toEqual({data: {
+            users: {
+                objectReturnTest: {
+                    foo: 'eggs',
+                    bar: 42,
+                }
             }
         }})
     })
