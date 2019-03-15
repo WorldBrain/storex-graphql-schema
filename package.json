@@ -12,8 +12,10 @@
     "run-test": "node test.js"
   },
   "keywords": [
-    "social-media",
-    "activity-stream"
+    "graph",
+    "graphql",
+    "database",
+    "api"
   ],
   "author": "Vincent den Boer",
   "dependencies": {

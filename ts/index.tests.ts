@@ -1,6 +1,5 @@
 import * as expect from 'expect'
 import * as graphql from "graphql";
-
 export function expectGraphQLSchemaToEqual(schema : graphql.GraphQLSchema, expected : string) {
     const expectLines = expected.split('\n')
     const secondExpectLine = expectLines[1]

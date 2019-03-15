@@ -10,7 +10,7 @@ describe('StorageModule translation', () => {
     // https://graphql.org/graphql-js/constructing-types/
 
     async function setupTest() {
-        class UserModule extends StorageModule {
+        class TestModule extends StorageModule {
             getConfig = () : StorageModuleConfig => ({
                 collections: {
                     user: {
@@ -98,10 +98,10 @@ describe('StorageModule translation', () => {
             async voidTest() {}
         }
 
-        const { storageManager, modules } = await setupStorexTest<{users : UserModule}>({
+        const { storageManager, modules } = await setupStorexTest<{users : TestModule}>({
             collections: {},
             modules: {
-                users: ({storageManager}) => new UserModule({storageManager})
+                users: ({storageManager}) => new TestModule({storageManager})
             }
         })
         const schema = createStorexGraphQLSchema(modules, {storageManager, autoPkType: 'int', graphql})

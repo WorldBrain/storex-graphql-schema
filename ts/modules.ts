@@ -1,6 +1,6 @@
 import * as graphqlTypes from "graphql";
 import StorageManager from '@worldbrain/storex'
-import { StorageModule } from '@worldbrain/storex-pattern-modules';
+import { StorageModuleInterface } from '@worldbrain/storex-pattern-modules';
 import { 
     PublicMethodDefinition, PublicMethodValues, PublicMethodValue, PublicMethodValueType,
     ensureDetailedPublicMethodValue, isPublicMethodCollectionType, isPublicMethodArrayType, PublicMethodDetailedArg, isPublicMethodObjectType, PublicMethodObjectType, PublicMethodDetailedValue
@@ -12,7 +12,7 @@ import { storexToGraphQLFieldType, collectionsToGrapQL } from "./schema";
 type CommonOptions = {autoPkType : AutoPkType, graphql : any}
 type CommonOptionsWithTypes = CommonOptions & {collectionTypes, collectionInputs, voidType}
 
-export function createStorexGraphQLSchema(modules : {[name : string]: StorageModule}, options : {
+export function createStorexGraphQLSchema(modules : {[name : string]: StorageModuleInterface}, options : {
     storageManager : StorageManager,
 } & CommonOptions) : graphqlTypes.GraphQLSchema {
     const collectionTypes = collectionsToGrapQL(options.storageManager.registry, options)
@@ -46,7 +46,7 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
     return new (options.graphql || graphqlTypes).GraphQLSchema({query: queryType, mutation: mutationType})
 }
 
-export function moduleToGraphQL(module : StorageModule, moduleName : string, options : {
+export function moduleToGraphQL(module : StorageModuleInterface, moduleName : string, options : {
     type: 'query' | 'mutation'
 } & CommonOptionsWithTypes) {
     const graphQLMethods = {}
