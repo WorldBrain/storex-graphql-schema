@@ -24,7 +24,10 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
 
     const queryModules = {}
     for (const [moduleName, module] of Object.entries(modules)) {
-        queryModules[moduleName] = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, collectionInputs, voidType, type: 'query' })
+        const graphQLModule = moduleToGraphQL(module, moduleName, { ...options, collectionTypes, collectionInputs, voidType, type: 'query' })
+        if (graphQLModule) {
+            queryModules[moduleName] = graphQLModule
+        }
     }
 
     const mutationModules = {}
@@ -33,6 +36,10 @@ export function createStorexGraphQLSchema(modules : {[name : string]: StorageMod
         if (graphQLModule) {
             mutationModules[moduleName] = graphQLModule
         }
+    }
+
+    if (!Object.keys(queryModules).length) {
+        throw new Error(`Schemas without any 'query' methods are not supported (yet?)`)
     }
 
     const queryType = new options.graphql.GraphQLObjectType({
