@@ -19,9 +19,6 @@
   ],
   "author": "Vincent den Boer",
   "dependencies": {
-    "@worldbrain/storex": "^0.3.3",
-    "@worldbrain/storex-pattern-modules": "^0.2.1",
-    "graphql": "^14.0.0",
     "lodash": "^4.17.10",
     "source-map-support": "^0.4.18"
   },
@@ -31,15 +28,23 @@
     "@types/graphql": "^14.0.7",
     "@types/mocha": "^2.2.44",
     "@types/node": "^10.12.11",
+    "@worldbrain/storex": "^0.3.4",
+    "@worldbrain/storex-pattern-modules": "^0.2.0",
     "@worldbrain/storex-backend-dexie": "^0.2.2",
     "chai": "^4.1.2",
     "expect": "^23.5.0",
     "fake-indexeddb": "^2.0.4",
+    "graphql": "^14.0.0",
     "graphql-errors": "^2.1.0",
     "mocha": "^4.0.1",
     "sinon": "^4.1.2",
     "ts-node": "^7.0.1",
     "typescript": "^3.0.1"
+  },
+  "peerDependencies": {
+    "graphql": "^14.0.0",
+    "@worldbrain/storex": "^0.3.4",
+    "@worldbrain/storex-pattern-modules": "^0.2.0"
   },
   "resolutions": {
     "**/graphql": "^14.0.0"

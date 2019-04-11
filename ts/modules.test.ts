@@ -59,7 +59,7 @@ describe('StorageModule translation', () => {
                     objectReturnTest: {
                         type: 'query',
                         args: {},
-                        returns: { object: { foo: 'string', bar: 'int' } }
+                        returns: { object: { foo: 'string', bar: 'int' }, singular: 'returnedTest' }
                     },
                     voidTest: {
                         type: 'query',
@@ -104,7 +104,7 @@ describe('StorageModule translation', () => {
                 users: ({storageManager}) => new TestModule({storageManager})
             }
         })
-        const schema = createStorexGraphQLSchema(modules, {storageManager, autoPkType: 'int', graphql})
+        const schema = createStorexGraphQLSchema(modules, {storageRegistry: storageManager.registry, autoPkType: 'int', graphql})
         maskErrors(schema)
         return { storageManager, modules, schema }
     }
